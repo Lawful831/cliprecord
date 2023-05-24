@@ -3,7 +3,13 @@ use std::time::{Duration, Instant};
 use device_query::{DeviceEvents, DeviceState, DeviceQuery};
 use device_query::keymap::Keycode;
 use screenshots::Screen;
-
+use ffmpeg_next::{
+    codec::encoder::video::Video,
+    dictionary::Dictionary,
+    format::context::output::{Audio, Output},
+    media::Type,
+    Rational,
+};
 struct CircularBuffer {
     buffer: Vec<Vec<u8>>,
     buffer_size: usize,
@@ -46,6 +52,7 @@ impl CircularBuffer {
     fn read_all(&self) -> Vec<Vec<u8>> {
         self.buffer.clone()
     }
+
 }
 
 fn calculate_frame_size(screen: &Screen) -> usize {
