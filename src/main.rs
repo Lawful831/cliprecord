@@ -1,15 +1,9 @@
 use std::fs;
+use std::io::Read;
 use std::time::{Duration, Instant};
-use device_query::{DeviceEvents, DeviceState, DeviceQuery};
+use device_query::{DeviceState, DeviceQuery};
 use device_query::keymap::Keycode;
 use screenshots::Screen;
-use ffmpeg_next::{
-    codec::encoder::video::Video,
-    dictionary::Dictionary,
-    format::context::output::{Audio, Output},
-    media::Type,
-    Rational,
-};
 struct CircularBuffer {
     buffer: Vec<Vec<u8>>,
     buffer_size: usize,
@@ -40,13 +34,12 @@ impl CircularBuffer {
         }
 
         // Trim the buffer to the desired duration
-        let max_frames = self.frame_rate * self.duration_secs;
+        /*let max_frames: usize = self.frame_rate * self.duration_secs;
         if self.buffer.len() > max_frames {
-            println!("Reached max content");
             let trim_frames = self.buffer.len() - max_frames;
             self.buffer.drain(0..trim_frames);
             self.write_position = (self.write_position + trim_frames) % self.buffer_size;
-        }
+        }*/
     }
 
     fn read_all(&self) -> Vec<Vec<u8>> {
@@ -60,14 +53,33 @@ fn calculate_frame_size(screen: &Screen) -> usize {
     let height = screen.display_info.height as usize;
     let bytes_per_pixel = 4;
 
-    width * height
+    width * height*bytes_per_pixel
+}
+
+fn transform_frames_to_video(){
+    let output = std::process::Command::new("cmd").
+                               arg("/C").
+                               arg("python").
+                               arg("clips/convert.py").
+                               arg("18")
+                               .stdout(std::process::Stdio::piped())
+                               .spawn()
+                               .expect("Failed to convert");
+                    
+    if let Some(mut child_stdout) = output.stdout{
+        let mut output_data = String::new();
+        child_stdout
+            .read_to_string(&mut output_data)
+            .expect("Failed to read child process");
+        println!("{}",output_data);
+    }
 }
 
 fn main() {
     let screens = Screen::all().unwrap();
     let s = screens[0];
 
-    let mut videobuffer = CircularBuffer::new(18, 10, calculate_frame_size(&s));
+    let mut videobuffer = CircularBuffer::new(30, 10, calculate_frame_size(&s));
     let device_state = DeviceState::new();
     println!("Query? {:#?}", device_state.query_keymap());
 
@@ -89,6 +101,7 @@ fn main() {
                 fs::write(format!("clips/{}.png", count), frame).unwrap();
                 count += 1;
             }
+            transform_frames_to_video();
             println!("Clipped successfully");
         }
     
