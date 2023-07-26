@@ -2,6 +2,7 @@ use std::fs;
 use std::io::Read;
 use std::time::{Duration, Instant};
 use device_query::{DeviceState, DeviceQuery};
+use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
 use device_query::keymap::Keycode;
 use screenshots::Screen;
 struct CircularBuffer {
@@ -14,7 +15,8 @@ struct CircularBuffer {
 
 impl CircularBuffer {
     fn new(frame_rate: usize, duration_secs: usize, frame_size: usize) -> CircularBuffer {
-        let buffer_size = frame_size * frame_rate;
+        let buffer_size = duration_secs * frame_rate;
+        println!("My max capacity is: {}",buffer_size);
         CircularBuffer {
             buffer: vec![vec![0;frame_size]],
             buffer_size,
@@ -26,20 +28,12 @@ impl CircularBuffer {
 
     fn write(&mut self, data: Vec<u8>) {
         if self.buffer.len() >= self.buffer_size {
-            //println!("I reached my limit!");
+            println!("I reached my limit!");
             self.buffer[self.write_position] = data;
             self.write_position = (self.write_position + 1) % self.buffer_size;
         } else {
             self.buffer.push(data);
         }
-
-        // Trim the buffer to the desired duration
-        /*let max_frames: usize = self.frame_rate * self.duration_secs;
-        if self.buffer.len() > max_frames {
-            let trim_frames = self.buffer.len() - max_frames;
-            self.buffer.drain(0..trim_frames);
-            self.write_position = (self.write_position + trim_frames) % self.buffer_size;
-        }*/
     }
 
     fn read_all(&self) -> Vec<Vec<u8>> {
@@ -52,16 +46,18 @@ fn calculate_frame_size(screen: &Screen) -> usize {
     let width = screen.display_info.width as usize;
     let height = screen.display_info.height as usize;
     let bytes_per_pixel = 4;
-
     width * height*bytes_per_pixel
 }
 
-fn transform_frames_to_video(){
+fn transform_frames_to_video(fps:usize){
+    let python_script_path = "clips/convert.py";
+    let fpstring = fps.to_string();
+    println!("Frames will be {}",fpstring);
     let output = std::process::Command::new("cmd").
                                arg("/C").
                                arg("python").
                                arg("clips/convert.py").
-                               arg("18")
+                               arg(fpstring)
                                .stdout(std::process::Stdio::piped())
                                .spawn()
                                .expect("Failed to convert");
@@ -78,41 +74,41 @@ fn transform_frames_to_video(){
 fn main() {
     let screens = Screen::all().unwrap();
     let s = screens[0];
-
-    let mut videobuffer = CircularBuffer::new(30, 10, calculate_frame_size(&s));
+    let framerate = 18;
+    let mut videobuffer = CircularBuffer::new(framerate, 60, calculate_frame_size(&s));
     let device_state = DeviceState::new();
     println!("Query? {:#?}", device_state.query_keymap());
 
-    let target_fps = 30;
-    let frame_duration = Duration::from_secs(1) / target_fps;
-    let mut last_frame_time = Instant::now();
+    /*mki::register_hotkey(&[Keyboard::LeftAlt, Keyboard::X], move || {
+        println!("Alt+X Pressed");
+    });*/
 
     loop {
+        
         let keys: Vec<Keycode> = device_state.get_keys();
         if keys.contains(&Keycode::Q) {
             break;
         }
     
-        if keys.contains(&Keycode::X) {
+        if mki::are_pressed(&[Keyboard::LeftAlt, Keyboard::X]) {
             println!("Should start clipping");
             let buffered_frames = videobuffer.read_all();
             let mut count = 0;
             for frame in buffered_frames {
+                /*if count == 0 {
+                    count += 1;
+                    continue
+                };*/
                 fs::write(format!("clips/{}.png", count), frame).unwrap();
                 count += 1;
+                println!("Count{}",count);
             }
-            transform_frames_to_video();
+            transform_frames_to_video(framerate);
             println!("Clipped successfully");
         }
     
         videobuffer.write(capture(&s));
-    
-        let elapsed = last_frame_time.elapsed();
-        if elapsed < frame_duration {
-            std::thread::sleep(frame_duration - elapsed);
-        }
-    
-        last_frame_time += frame_duration; // Add frame_duration to last_frame_time
+        println!("Buffer size: {}", videobuffer.read_all().len()); // Add this line to check buffer size
     }
 }
 
