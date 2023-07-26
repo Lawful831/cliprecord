@@ -76,7 +76,7 @@ fn main() {
     let screens = Screen::all().unwrap();
     let s = screens[0];
     let framerate = 24;
-    let mut videobuffer = CircularBuffer::new(framerate, 60, calculate_frame_size(&s));
+    let mut videobuffer = CircularBuffer::new(framerate, 3, calculate_frame_size(&s));
     let device_state = DeviceState::new();
     println!("Query? {:#?}", device_state.query_keymap());
 
@@ -102,7 +102,7 @@ fn main() {
                 println!("Count{}", count);
                 thread::sleep(frame_delay);
             }
-            transform_frames_to_video(framerate);
+            thread::spawn(move ||{transform_frames_to_video(framerate)});
             println!("Clipped successfully");
         }
     
