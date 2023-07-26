@@ -6,6 +6,11 @@ use device_query::{DeviceState, DeviceQuery};
 use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
 use device_query::keymap::Keycode;
 use screenshots::Screen;
+
+use wasapi::*;
+
+type Res<T> = Result<T, Box<dyn std::error::Error>>;
+
 struct CircularBuffer {
     buffer: Vec<Vec<u8>>,
     buffer_size: usize,
@@ -72,7 +77,7 @@ fn transform_frames_to_video(fps:usize){
     }
 }
 
-fn main() {
+fn main()->Res<()> {
     let screens = Screen::all().unwrap();
     let s = screens[0];
     let framerate = 24;
@@ -80,9 +85,7 @@ fn main() {
     let device_state = DeviceState::new();
     println!("Query? {:#?}", device_state.query_keymap());
 
-    /*mki::register_hotkey(&[Keyboard::LeftAlt, Keyboard::X], move || {
-        println!("Alt+X Pressed");
-    });*/
+    initialize_mta();
 
     loop {
         
@@ -112,6 +115,7 @@ fn main() {
         let frame_delay = Duration::from_millis((1000 / framerate as u64) - 10); // -10ms to account for processing time
         thread::sleep(frame_delay);
     }
+    Ok(())
 }
 
 fn capture(screen: &Screen) -> Vec<u8> {
