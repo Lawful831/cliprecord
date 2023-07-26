@@ -31,7 +31,7 @@ def create_video(framerate):
     output_file = os.path.join(directory, f'{clipname}.mp4')
 
     # Create an ffmpeg input object from the list of image files
-    input_args = [ffmpeg.input(os.path.join(directory, file)) for file in image_files]
+    input_args = [ffmpeg.input(os.path.join(directory, file),framerate=framerate) for file in image_files]
 
     # Create the video and save it to the output file
     for input_arg in input_args:
@@ -39,7 +39,8 @@ def create_video(framerate):
     print("OUTPUT")
     print(output_file)
     try:
-        ffmpeg.output(*input_args, output_file,framerate=framerate).run(capture_stdout=True, capture_stderr=True)#give framerate if no work
+        ffmpeg.input(f'{directory}/%d.png', framerate=framerate).output(output_file, vcodec='libx264', r=framerate, pix_fmt='yuv420p').run()
+        #ffmpeg.output(*input_args, output_file,framerate=framerate,vcodec='libx264',r=framerate,pix_fmt='yuv420p').run(capture_stdout=True, capture_stderr=True)#give framerate if no work
     except ffmpeg.Error as e:
         print('stdout:', e.stdout.decode('utf8'))
         print('stderr:', e.stderr.decode('utf8'))

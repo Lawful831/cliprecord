@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Read;
+use std::thread;
 use std::time::{Duration, Instant};
 use device_query::{DeviceState, DeviceQuery};
 use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
@@ -27,17 +28,17 @@ impl CircularBuffer {
     }
 
     fn write(&mut self, data: Vec<u8>) {
-        if self.buffer.len() >= self.buffer_size {
-            println!("I reached my limit!");
+        if self.buffer.len() < self.buffer_size {
+            self.buffer.push(data);
+        } else {
             self.buffer[self.write_position] = data;
             self.write_position = (self.write_position + 1) % self.buffer_size;
-        } else {
-            self.buffer.push(data);
         }
     }
 
     fn read_all(&self) -> Vec<Vec<u8>> {
-        self.buffer.clone()
+        // Filter out any empty frames from the buffer before returning
+        self.buffer.iter().filter(|frame| !frame.is_empty()).cloned().collect()
     }
 
 }
@@ -74,7 +75,7 @@ fn transform_frames_to_video(fps:usize){
 fn main() {
     let screens = Screen::all().unwrap();
     let s = screens[0];
-    let framerate = 18;
+    let framerate = 24;
     let mut videobuffer = CircularBuffer::new(framerate, 60, calculate_frame_size(&s));
     let device_state = DeviceState::new();
     println!("Query? {:#?}", device_state.query_keymap());
@@ -94,14 +95,12 @@ fn main() {
             println!("Should start clipping");
             let buffered_frames = videobuffer.read_all();
             let mut count = 0;
+            let frame_delay = Duration::from_millis((1000 / framerate as u64) - 10); // -10ms to account for processing time
             for frame in buffered_frames {
-                /*if count == 0 {
-                    count += 1;
-                    continue
-                };*/
                 fs::write(format!("clips/{}.png", count), frame).unwrap();
                 count += 1;
-                println!("Count{}",count);
+                println!("Count{}", count);
+                thread::sleep(frame_delay);
             }
             transform_frames_to_video(framerate);
             println!("Clipped successfully");
@@ -109,6 +108,9 @@ fn main() {
     
         videobuffer.write(capture(&s));
         println!("Buffer size: {}", videobuffer.read_all().len()); // Add this line to check buffer size
+        // Introduce a delay to control the frame rate
+        let frame_delay = Duration::from_millis((1000 / framerate as u64) - 10); // -10ms to account for processing time
+        thread::sleep(frame_delay);
     }
 }
 
