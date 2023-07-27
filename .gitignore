@@ -1,3 +1,5 @@
 /target
 /clips/*.png
 /clips/*.mp4
+/clips/*.wav
+*.bk
