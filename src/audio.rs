@@ -106,10 +106,10 @@ pub fn execute_audio_capture() -> Res<()> {
    
 
     // Define circular buffer size for 3 seconds of audio (adjust based on the sample rate)
-    let CIRCULAR_BUFFER_SIZE: usize = (sample_rate * bits_per_sample / 8 * 3) as usize;
+    let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * 3) as usize;
 
     // Initialize circular buffer
-    let mut circular_buffer: VecDeque<f32> = VecDeque::with_capacity(CIRCULAR_BUFFER_SIZE);
+    let mut circular_buffer: VecDeque<f32> = VecDeque::with_capacity(circular_buffer_size);
 
     loop {
         match rx_capt.recv() {
@@ -129,7 +129,7 @@ pub fn execute_audio_capture() -> Res<()> {
                 }
 
                 // Enforce the 3-second buffer limit
-                while circular_buffer.len() > CIRCULAR_BUFFER_SIZE {
+                while circular_buffer.len() > circular_buffer_size {
                     circular_buffer.pop_front();
                 }
 

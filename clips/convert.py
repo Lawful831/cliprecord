@@ -72,7 +72,9 @@ def create_video(framerate):
     print(f"Video created: {voutput_file}")
     print("Deleting png frames")
     delete_png_files(directory)
-    #merge_video_and_audio(voutput_file, aoutput_file, output_file)
+    while os.path.exists(aoutput_file) == False:
+        continue
+    merge_video_and_audio(voutput_file, aoutput_file, output_file)
 
 
 if __name__ == '__main__':
