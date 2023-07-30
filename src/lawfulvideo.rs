@@ -95,7 +95,7 @@ pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let screens = Screen::all().unwrap();
     let s = screens[0];
     let framerate = 24;
-    let mut videobuffer = CircularBuffer::new(framerate, 30, calculate_frame_size(&s));
+    let mut videobuffer = CircularBuffer::new(framerate, 14, calculate_frame_size(&s));
     initialize_mta()?;
 
     loop {
@@ -112,6 +112,7 @@ pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
                 continue
             }
             thread::spawn(move || transform_frames_to_video(framerate));
+            wavwritten.store(false, Ordering::Relaxed);
         }
         videobuffer.write(capture(&s));
         //println!("Buffer size: {}", videobuffer.read_all().len()); // Add this line to check buffer size

@@ -106,7 +106,7 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let num_channels = 2; // The number of audio channels (modify as needed)
 
     // Define circular buffer size for 3 seconds of audio (adjust based on the sample rate)
-    let sduration = 15;
+    let sduration = 7;
     let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * sduration) as usize;
 
     // Initialize circular buffer
@@ -138,7 +138,7 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
                 if mki::are_pressed(&[Keyboard::LeftAlt, Keyboard::X]) {
                     // Write the contents of the circular buffer to the WAV file
                     Notification::new()
-                    .summary("Clipping last 30 seconds")
+                    .summary("Clipping last 14 seconds")
                     .show()?;
                     info!("Save to wav");
                     let spec = WavSpec {
