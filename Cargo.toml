@@ -12,5 +12,5 @@ simplelog = "0.12.1"
 wasapi = "0.13.0"
 log = "0.4.19"
 hound = "3.5.0"
-crossbeam = "0.8.0"
+notify-rust = "4"
 

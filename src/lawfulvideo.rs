@@ -8,7 +8,7 @@ use std::thread;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use wasapi::*;
-
+use notify_rust::Notification;
 type Res<T> = Result<T, Box<dyn std::error::Error>>;
 
 struct CircularBuffer {
@@ -78,6 +78,9 @@ fn transform_frames_to_video(fps: usize) {
         trace!("{}", output_data);
     }
     info!("Clipped successfully");
+    Notification::new()
+    .summary("Clipped succesfully")
+    .show().unwrap();
 }
 
 pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
@@ -92,7 +95,7 @@ pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let screens = Screen::all().unwrap();
     let s = screens[0];
     let framerate = 24;
-    let mut videobuffer = CircularBuffer::new(framerate, 3, calculate_frame_size(&s));
+    let mut videobuffer = CircularBuffer::new(framerate, 30, calculate_frame_size(&s));
     initialize_mta()?;
 
     loop {

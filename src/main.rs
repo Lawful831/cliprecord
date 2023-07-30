@@ -3,9 +3,10 @@ extern crate log;
 use simplelog::*;
 use std::sync::atomic::AtomicBool;
 use std::thread;
+use std::sync::Arc;
 mod lawfulvideo;
 mod audio;
-use std::sync::Arc;
+
 fn main() {
     let wavwritten = Arc::new(AtomicBool::new(false));  
     let ww = wavwritten.clone();

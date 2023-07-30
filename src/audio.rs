@@ -14,6 +14,7 @@ use simplelog::*;
 use std::time::Duration;
 use std::time::Instant;
 use wasapi::*;
+use notify_rust::Notification;
 type Res<T> = Result<T, Box<dyn error::Error>>;
 
 fn capture_loop(tx_capt: std::sync::mpsc::SyncSender<Vec<u8>>, chunksize: usize) -> Res<()> {
@@ -105,7 +106,8 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let num_channels = 2; // The number of audio channels (modify as needed)
 
     // Define circular buffer size for 3 seconds of audio (adjust based on the sample rate)
-    let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * 3) as usize;
+    let sduration = 15;
+    let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * sduration) as usize;
 
     // Initialize circular buffer
     let mut circular_buffer: VecDeque<f32> = VecDeque::with_capacity(circular_buffer_size);
@@ -135,6 +137,9 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
                 // Check if the Alt + X combination is pressed
                 if mki::are_pressed(&[Keyboard::LeftAlt, Keyboard::X]) {
                     // Write the contents of the circular buffer to the WAV file
+                    Notification::new()
+                    .summary("Clipping last 30 seconds")
+                    .show()?;
                     info!("Save to wav");
                     let spec = WavSpec {
                         channels: num_channels as u16,
