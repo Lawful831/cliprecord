@@ -1,17 +1,19 @@
+use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
 use std::collections::VecDeque;
 use std::error;
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::thread;
-use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
-
-use wasapi::*;
-use simplelog::*;
-use std::time::Duration;
+use std::sync::Arc;
 use hound::WavSpec;
 use hound::WavWriter;
+use simplelog::*;
+use std::time::Duration;
 use std::time::Instant;
+use wasapi::*;
 type Res<T> = Result<T, Box<dyn error::Error>>;
 
 fn capture_loop(tx_capt: std::sync::mpsc::SyncSender<Vec<u8>>, chunksize: usize) -> Res<()> {
@@ -71,7 +73,7 @@ fn capture_loop(tx_capt: std::sync::mpsc::SyncSender<Vec<u8>>, chunksize: usize)
 }
 
 // Main loop
-pub fn execute_audio_capture() -> Res<()> {
+pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let _ = SimpleLogger::init(
         LevelFilter::Info,
         ConfigBuilder::new()
@@ -98,12 +100,9 @@ pub fn execute_audio_capture() -> Res<()> {
             }
         });
 
-
     let sample_rate = 44100; // The sample rate you are using (modify as needed)
     let bits_per_sample = 32; // The number of bits per sample (modify as needed)
     let num_channels = 2; // The number of audio channels (modify as needed)
-
-   
 
     // Define circular buffer size for 3 seconds of audio (adjust based on the sample rate)
     let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * 3) as usize;
@@ -143,12 +142,13 @@ pub fn execute_audio_capture() -> Res<()> {
                         bits_per_sample: bits_per_sample as u16,
                         sample_format: hound::SampleFormat::Float,
                     };
-                
+
                     let mut writer = WavWriter::create("clips/recorded.wav", spec)?;
                     for &sample in &circular_buffer {
                         writer.write_sample(sample)?;
                     }
                     writer.finalize()?;
+                    wavwritten.store(true,Ordering::Relaxed);
                 }
             }
             Err(err) => {

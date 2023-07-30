@@ -8,22 +8,16 @@ def merge_video_and_audio(video_file, audio_file, output_file):
     print("Start merging")
     video_input = ffmpeg.input(video_file)
     audio_input = ffmpeg.input(audio_file)
-    ffmpeg_command = [
-        "ffmpeg",
-        "-i", video_file,
-        "-i", audio_file,
-        "-af", "volume=5dB",
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-strict", "experimental",
-        output_file,
-    ]
-    try:
-    # Execute the ffmpeg command as a subprocess
-        subprocess.run(ffmpeg_command, check=True)
-        print("Normalization complete.")
-    except subprocess.CalledProcessError as e:
-        print(f"An error occurred: {e}")
+    
+    # Apply the volume filter to the audio
+    audio_with_volume = audio_input.audio.filter('volume', volume=3.0)
+    
+    # Merge the video and the audio with adjusted volume
+    output = ffmpeg.output(video_input, audio_with_volume, output_file)
+    
+    # Run the ffmpeg command
+    ffmpeg.run(output)
+    
 
 def delete_png_files(folder_path):
     try:
@@ -52,16 +46,19 @@ def create_video(framerate):
     # Create a video writer object
     clipname = datetime.datetime.utcnow().strftime("%m-%d-%Y-%H-%M-%S")
     print("Clip name: " + clipname)
-    voutput_file = os.path.join(directory, f'pre_{clipname}.mp4')
-    aoutput_file = os.path.join(directory, f'recorded.wav')
-    output_file = os.path.join(directory, f'{clipname}.mp4')
+    output_file = os.path.join(directory, f'pre_{clipname}.mp4')
 
     # Create an ffmpeg input object from the list of image files
-    input_args = [ffmpeg.input(os.path.join(directory, file), framerate=framerate) for file in image_files]
+    input_args = [ffmpeg.input(os.path.join(directory, file),framerate=framerate) for file in image_files]
 
     # Create the video and save it to the output file
+    for input_arg in input_args:
+        print(input_arg)
+    print("OUTPUT")
+    print(output_file)
     try:
-        ffmpeg.output(*input_args, voutput_file, vcodec='libx264', r=framerate, pix_fmt='yuv420p').overwrite_output().run()
+        ffmpeg.input(f'{directory}/%d.png', framerate=framerate).output(output_file, vcodec='libx264', r=framerate, pix_fmt='yuv420p').run()
+        #ffmpeg.output(*input_args, output_file,framerate=framerate,vcodec='libx264',r=framerate,pix_fmt='yuv420p').run(capture_stdout=True, capture_stderr=True)#give framerate if no work
     except ffmpeg.Error as e:
         print('stdout:', e.stdout.decode('utf8'))
         print('stderr:', e.stderr.decode('utf8'))
@@ -69,14 +66,14 @@ def create_video(framerate):
 
     print("Video writer done")
     print("Finished")
-    print(f"Video created: {voutput_file}")
+    print(f"Video created: {output_file}")
     print("Deleting png frames")
     delete_png_files(directory)
-    while os.path.exists(aoutput_file) == False:
-        continue
-    merge_video_and_audio(voutput_file, aoutput_file, output_file)
-
-
+    print("Bye png files")
+    print("Fusion!")
+    merge_video_and_audio(f'clips/pre_{clipname}.mp4','clips/recorded.wav',f'clips/{clipname}.mp4')
+    os.remove(f'clips/pre_{clipname}.mp4')
+    os.remove(f'clips/recorded.wav')
 if __name__ == '__main__':
     # Check if the framerate argument is provided
     if len(sys.argv) != 2:

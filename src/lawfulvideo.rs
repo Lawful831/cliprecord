@@ -1,11 +1,13 @@
-use std::fs;
-use std::io::Read;
-use std::thread;
-use std::time::{Duration, Instant};
 use mki::{bind_key, Action, InhibitEvent, Keyboard, Sequence};
 use screenshots::Screen;
-use wasapi::*;
 use simplelog::*;
+use std::fs;
+use std::io::Read;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use wasapi::*;
 
 type Res<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -41,7 +43,11 @@ impl CircularBuffer {
 
     fn read_all(&self) -> Vec<Vec<u8>> {
         // Filter out any empty frames from the buffer before returning
-        self.buffer.iter().filter(|frame| !frame.is_empty()).cloned().collect()
+        self.buffer
+            .iter()
+            .filter(|frame| !frame.is_empty())
+            .cloned()
+            .collect()
     }
 }
 
@@ -74,9 +80,9 @@ fn transform_frames_to_video(fps: usize) {
     info!("Clipped successfully");
 }
 
-pub fn execute_video_capture() -> Res<()> {
+pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
     let _ = SimpleLogger::init(
-        LevelFilter::Off,
+        LevelFilter::Info,
         ConfigBuilder::new()
             .set_time_format_rfc3339()
             .set_time_offset_to_local()
@@ -98,7 +104,11 @@ pub fn execute_video_capture() -> Res<()> {
                 fs::write(format!("clips/{}.png", count), frame).unwrap();
                 count += 1;
             }
-            thread::spawn(move ||{transform_frames_to_video(framerate)});
+            while !wavwritten.load(Ordering::Relaxed){
+                info!("Waiting");
+                continue
+            }
+            thread::spawn(move || transform_frames_to_video(framerate));
         }
         videobuffer.write(capture(&s));
         //println!("Buffer size: {}", videobuffer.read_all().len()); // Add this line to check buffer size
@@ -110,4 +120,3 @@ fn capture(screen: &Screen) -> Vec<u8> {
     let buffer = image.buffer();
     buffer.to_owned()
 }
-
