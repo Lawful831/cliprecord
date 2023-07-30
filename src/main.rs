@@ -10,7 +10,6 @@ mod audio;
 fn main() {
     let wavwritten = Arc::new(AtomicBool::new(false));  
     let ww = wavwritten.clone();
-    // Initialize the logger here if needed
     let _ = SimpleLogger::init(
         LevelFilter::Info,
         ConfigBuilder::new()

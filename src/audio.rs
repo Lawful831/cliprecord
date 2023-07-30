@@ -101,11 +101,10 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
             }
         });
 
-    let sample_rate = 44100; // The sample rate you are using (modify as needed)
-    let bits_per_sample = 32; // The number of bits per sample (modify as needed)
-    let num_channels = 2; // The number of audio channels (modify as needed)
+    let sample_rate = 44100; 
+    let bits_per_sample = 32; 
+    let num_channels = 2;
 
-    // Define circular buffer size for 3 seconds of audio (adjust based on the sample rate)
     let sduration = 7;
     let circular_buffer_size: usize = (sample_rate * bits_per_sample / 8 * sduration) as usize;
 
@@ -129,7 +128,7 @@ pub fn execute_audio_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
                     circular_buffer.push_back(*sample);
                 }
 
-                // Enforce the 3-second buffer limit
+                // Enforce the-second buffer limit
                 while circular_buffer.len() > circular_buffer_size {
                     circular_buffer.pop_front();
                 }

@@ -115,7 +115,7 @@ pub fn execute_video_capture(wavwritten:Arc<AtomicBool>) -> Res<()> {
             wavwritten.store(false, Ordering::Relaxed);
         }
         videobuffer.write(capture(&s));
-        //println!("Buffer size: {}", videobuffer.read_all().len()); // Add this line to check buffer size
+        //println!("Buffer size: {}", videobuffer.read_all().len()); 
     }
 }
 
